@@ -35,7 +35,6 @@ const transactionController = {
       filters.date = { ...filters.date, $gte: new Date(startDate) };
     }
     if (endDate) {
-      filters.date = { ...filters.date, $gte: new Date(endDate) };
     }
     if (type) {
       filters.type = type;
@@ -50,15 +49,35 @@ const transactionController = {
       }
     }
 
-    const transactions = await Transaction.find(filters).sort({ date: -1 });
+    //const transactions = await Transaction.find(filters).sort({ date: -1 });
+    const transactions = await Transaction.find();
     res.json(transactions);
   }),
 
   //! update
-  update: asyncHandler(async (req, res) => {}),
+  update: asyncHandler(async (req, res) => {
+    const transaction = await Transaction.findById(req.params.id);
+    if(transaction && transaction.user.toString() === req.user.toString()){
+      transaction.type = req.body.type || transaction.type;
+      transaction.category = req.body.category || transaction.category;
+      transaction.amount = req.body.amount || transaction.amount;
+      transaction.date = req.body.date || transaction.date;
+      transaction.description = req.body.description || transaction.description;
+      
+      //update the transaction
+      const updatedTransaction = await transaction.save();
+      res.json(updatedTransaction);
+    }
+  }),
 
   //! delete
-  delete: asyncHandler(async (req, res) => {}),
+  delete: asyncHandler(async (req, res) => {
+    const transaction = await Transaction.findById(req.params.id);
+    if(transaction && transaction.user.toString() === req.user.toString()){
+      await Transaction.findByIdAndDelete(req.params.id);
+      res.json({message: "Transaction deleted successfully"});
+    }
+  }),
 };
 
 module.exports = { transactionController };
