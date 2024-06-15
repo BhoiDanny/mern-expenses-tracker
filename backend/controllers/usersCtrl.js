@@ -63,23 +63,59 @@ const usersController = {
       email: user.email,
       username: user.username,
     });
-
-    
   }),
 
   //! Profile
-  profile: asyncHandler(async(req, res) => {
+  profile: asyncHandler(async (req, res) => {
     //! Find the user
-    const user = await User.findById('666be8ce8f42fc63f84e64f7')
-    if(!user) {
-        throw new Error("User not found")
+    const user = await User.findById(req.user);
+    if (!user) {
+      throw new Error("User not found");
     }
     //!Send the response
     res.status(200).json({
-        username: user.username,
-        email: user.email
+      username: user.username,
+      email: user.email,
+    });
+  }),
+
+  //! Change Password
+  changeUserPassword: asyncHandler(async (req, res) => {
+    const { newPassword } = req.body;
+    //! Find the user
+    const user = await User.findById(req.user);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    //! Hash password before saving
+    //? Hash the user password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    user.password = hashedPassword;
+    await user.save();
+
+    //!Send the response
+    res.status(200).json({
+      message: 'Password changed successfully'
+    });
+  }),
+
+  //! Update user profile
+  updateUserProfile: asyncHandler(async (req, res) => {
+    const { email, username } = req.body;
+    const updatedUser = await User.findByIdAndUpdate(req.user, {
+        username,
+        email
+    }, {
+        new: true
     })
-  })
+    //!Send the response
+    res.status(200).json({
+      message: 'User profile updated successfully',
+      updatedUser
+    });
+  }),
 };
 
 module.exports = { usersController };
