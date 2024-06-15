@@ -34,7 +34,7 @@ const categoryController = {
       type: type.toLowerCase(),
     });
 
-    res.status(201).json(category)
+    res.status(201).json(category);
   }),
   //! Lists
   lists: asyncHandler(async (req, res) => {
@@ -43,10 +43,62 @@ const categoryController = {
   }),
 
   //! update
-  update: asyncHandler(async (req, res) => {}),
+  update: asyncHandler(async (req, res) => {
+    const categoryId = req.params.id;
+    const { name, type } = req.body;
+    const normalizedName = name.toLowerCase();
+    const category = await Category.findById(categoryId);
+    if (!category && category.user.toString() !== req.user.toString()) {
+      throw new Error("Category not found or user not authorized");
+    }
+    const oldName = category.name;
+    //! Update category properties
+    category.name = normalizedName;
+    category.type = type ? type.toLowerCase() : category.type;
+    const updatedCategory = await category.save();
+    //! Updated affected transactions
+    if (oldName !== updatedCategory.name) {
+      await Transaction.updateMany(
+        {
+          user: req.user,
+          category: oldName,
+        },
+        {
+          $set: { category: updatedCategory.name },
+        }
+      );
+    }
+    res.status(200).json(updatedCategory);
+  }),
 
   //! delete
-  delete: asyncHandler(async (req, res) => {}),
+  delete: asyncHandler(async (req, res) => {
+    const category = await Category.findById(req.params.id);
+    if (category && category.user.toString() === req.user.toString()) {
+      //! Update transactions that have this category
+      const defaultCategory = "Uncategorized";
+      await Transaction.updateMany(
+        {
+          user: req.user,
+          category: category.name,
+        },
+        {
+          $set: { category: defaultCategory },
+        }
+      );
+      //! Remove category
+      await Category.findByIdAndDelete(req.params.id);
+      res
+        .status(200)
+        .json({
+          message: "Category deleted and transactions updated successfully",
+        });
+    } else {
+      res
+        .status(404)
+        .json({ message: "Category not found or user not authorized" });
+    }
+  }),
 };
 
 module.exports = { categoryController };
