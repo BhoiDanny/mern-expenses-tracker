@@ -21,37 +21,37 @@ const transactionController = {
       description,
     });
 
-    res.status(201).json(transaction)
-   
+    res.status(201).json(transaction);
   }),
   //! Lists
   getFilteredTransactions: asyncHandler(async (req, res) => {
-    const { startDate, endDate, type, category} = req.query;
-    let filters = { 
+    const { startDate, endDate, type, category } = req.query;
+    
+    let filters = {
       user: req.user,
       date: startDate,
+    };
+    if (startDate) {
+      filters.date = { ...filters.date, $gte: new Date(startDate) };
     }
-    if(startDate) {
-      filters.date = {...filters.date, $gte: new Date(startDate)}
+    if (endDate) {
+      filters.date = { ...filters.date, $gte: new Date(endDate) };
     }
-    if(endDate) {
-      filters.date = {...filters.date, $gte: new Date(endDate)}
+    if (type) {
+      filters.type = type;
     }
-    if(type) {
-      filters.type = type
-    }
-    if(category) {
-      if(category === 'All') {
+    if (category) {
+      if (category === "All") {
         //! no category filter needed when filtering all
-      } else if (category === 'Uncategorized') {
-        filters.category = 'Uncategorized'
+      } else if (category === "Uncategorized") {
+        filters.category = "Uncategorized";
       } else {
-        filters.category = category
+        filters.category = category;
       }
     }
 
-    const transactions = await Transaction.find(filters).sort({date: -1})
-    res.json(transactions)
+    const transactions = await Transaction.find(filters).sort({ date: -1 });
+    res.json(transactions);
   }),
 
   //! update
